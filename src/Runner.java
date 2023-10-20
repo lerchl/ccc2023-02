@@ -6,7 +6,7 @@ public class Runner {
         // Change level here
         var level = new Level4();
 
-        IntStream.range(1, 2).forEach(sublevel -> {
+        IntStream.range(1, 6).forEach(sublevel -> {
             try {
                 var input = level.read(sublevel);
                 var output = level.solve(input);
