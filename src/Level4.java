@@ -40,12 +40,16 @@ public class Level4 extends Solver {
 	private List<Coordinate> aStarSearch(Coordinate start, Coordinate goal) {
 		PriorityQueue<Node> openList = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
 		Map<Coordinate, Node> allNodes = new HashMap<>();
+		Set<Coordinate> openSet = new HashSet<>();  // Step 1: Use a HashSet for O(1) existence checks
 		Node startNode = new Node(start, null, 0, heuristic(start, goal));
+
 		openList.add(startNode);
 		allNodes.put(start, startNode);
+		openSet.add(start); // Add the start node's coordinate to openSet
 
 		while (!openList.isEmpty()) {
 			Node currentNode = openList.poll();
+			openSet.remove(currentNode.coordinate); // Remove the current node's coordinate from openSet
 
 			if (currentNode.coordinate.equals(goal)) {
 				List<Coordinate> path = new ArrayList<>();
@@ -61,19 +65,25 @@ public class Level4 extends Solver {
 				if (neighborCoord.getX() < 0 || neighborCoord.getX() >= map[0].length ||
 						neighborCoord.getY() < 0 || neighborCoord.getY() >= map.length ||
 						map[neighborCoord.getY()][neighborCoord.getX()].equals("L")) {
-					    continue; // Blocked by a wall.
+					continue; // Blocked by a wall.
 				}
 
-				Node neighbor = allNodes.getOrDefault(neighborCoord, new Node(neighborCoord));
+				Node neighbor = allNodes.get(neighborCoord);
+				if (neighbor == null) {
+					neighbor = new Node(neighborCoord);
+					allNodes.put(neighborCoord, neighbor);
+				}
+
 				int tentativeG = currentNode.g + 1; // All moves cost 1 for simplicity.
 
 				if (tentativeG < neighbor.g) {
 					neighbor.parent = currentNode;
 					neighbor.g = tentativeG;
 					neighbor.f = tentativeG + heuristic(neighbor.coordinate, goal);
-					if (!openList.contains(neighbor)) {
+
+					if (!openSet.contains(neighbor.coordinate)) { // Step 2: Refactor the way you handle neighbors
 						openList.add(neighbor);
-						allNodes.put(neighborCoord, neighbor);
+						openSet.add(neighbor.coordinate);
 					}
 				}
 			}
@@ -81,6 +91,7 @@ public class Level4 extends Solver {
 
 		return Collections.emptyList(); // No path found.
 	}
+
 
 	private List<Coordinate> getNeighbors(Coordinate coordinate) {
 		int x = coordinate.getX();
