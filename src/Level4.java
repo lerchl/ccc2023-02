@@ -80,7 +80,7 @@ public class Level4 extends Solver {
 					    continue;
 				}
 
-				Node neighbor = allNodes.getOrDefault(hash(goalX, goalY), new Node(x, y));
+				Node neighbor = allNodes.getOrDefault(hash(x, y), new Node(x, y));
 				int tentativeG = currentNode.g + 1; // All moves cost 1 for simplicity.
 
 				if (tentativeG < neighbor.g) {
@@ -112,8 +112,10 @@ public class Level4 extends Solver {
 		Node parent;
 		int g, f;
 
+		static int i = 0;
+
 		Node(int x, int y) {
-			this(x, y, null, Integer.MAX_VALUE, Integer.MAX_VALUE);
+			this(x, y, null, 1000000, 1000000);
 		}
 
 		Node(int x, int y, Node parent, int g, int h) {
