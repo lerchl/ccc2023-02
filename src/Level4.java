@@ -1,11 +1,9 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class Level4 extends Solver {
+// Assuming your Coordinate and Pair classes are defined elsewhere.
 
-	// first y then x
+public class Level4 extends Solver {
 	private String[][] map;
 
 	Level4() {
@@ -16,7 +14,6 @@ public class Level4 extends Solver {
 	protected List<String> solve(List<String> input) {
 		int mapSize = Integer.parseInt(input.get(0));
 		map = input.stream().skip(1).limit(mapSize).map(row -> row.split("")).toArray(String[][]::new);
-
 		int coordinateCountIndex = mapSize + 1;
 
 		List<Pair> coordinatePairs = input.stream().skip(coordinateCountIndex + 1).map(row -> {
@@ -30,85 +27,91 @@ public class Level4 extends Solver {
 		}).toList();
 
 		return coordinatePairs.stream().map(pair -> {
-			var route = search(pair.getC1(), pair.getC2(), new ArrayList<>(), new ArrayList<>());
+			var route = aStarSearch(pair.getC1(), pair.getC2());
 			return route.stream().map(c -> c.getX() + "," + c.getY()).collect(Collectors.joining(" "));
 		}).toList();
-
-		// List<List<Coordinate>> routes = input.stream().skip(coordinateCountIndex + 1).map(row -> {
-		// 	String[] coordinates = row.split(" ");
-		// 	return Arrays.stream(coordinates).map(stringC -> {
-		// 		String[] stringCoordinate = stringC.split(",");
-		// 		return new Coordinate(Integer.parseInt(stringCoordinate[0]), Integer.parseInt(stringCoordinate[1]));
-		// 	}).toList();
-		// }).toList();
-
-		// return routes.stream().map(route -> {
-		// 	if (route.stream().map(c -> Collections.frequency(route, c)).anyMatch(count -> count > 1)) {
-		// 		return false;
-		// 	}
-
-		// 	List<Pair> wouldCross = new ArrayList<>();
-		// 	for (int i = 0; i < route.size() - 1; i++) {
-		// 		Coordinate c1 = route.get(i);
-		// 		Coordinate c2 = route.get(i + 1);
-
-		// 		if (wouldCross.contains(new Pair(c1, c2))) {
-		// 			return false;
-		// 		}
-
-		// 		Coordinate swappedC1 = new Coordinate(c2.getX(), c1.getY());
-		// 		Coordinate swappedC2 = new Coordinate(c1.getX(), c2.getY());
-
-		// 		wouldCross.add(new Pair(swappedC1, swappedC2));
-		// 		wouldCross.add(new Pair(swappedC2, swappedC1));
-		// 	}
-
-		// 	return true;
-		// }).map(b -> b ? "VALID" : "INVALID").toList();
 	}
 
-	private List<Coordinate> search(Coordinate from, Coordinate to, List<Coordinate> visited, List<Coordinate> route) {
-		if (
-			// x out of bounds
-			from.getX() < 0 || from.getX() >= map[0].length ||
-			// or y out of bounds
-			from.getY() < 0 || from.getY() >= map.length
-		) {
-			return null;
-		}
+	private int heuristic(Coordinate a, Coordinate b) {
+		// Manhattan distance
+		return Math.abs(a.getX() - b.getX()) + Math.abs(a.getY() - b.getY());
+	}
 
-		if (visited.contains(from) || map[from.getY()][from.getX()].equals("L")) {
-			return null;
-		}
+	private List<Coordinate> aStarSearch(Coordinate start, Coordinate goal) {
+		PriorityQueue<Node> openList = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
+		Map<Coordinate, Node> allNodes = new HashMap<>();
+		Node startNode = new Node(start, null, 0, heuristic(start, goal));
+		openList.add(startNode);
+		allNodes.put(start, startNode);
 
-		visited = new ArrayList<>(visited);
-		route = new ArrayList<>(route);
+		while (!openList.isEmpty()) {
+			Node currentNode = openList.poll();
 
-		visited.add(from);
-		route.add(from);
+			if (currentNode.coordinate.equals(goal)) {
+				List<Coordinate> path = new ArrayList<>();
+				while (currentNode != null) {
+					path.add(currentNode.coordinate);
+					currentNode = currentNode.parent;
+				}
+				Collections.reverse(path);
+				return path;
+			}
 
-		if (from.equals(to)) {
-			return route;
-		}
+			for (Coordinate neighborCoord : getNeighbors(currentNode.coordinate)) {
+				if (neighborCoord.getX() < 0 || neighborCoord.getX() >= map[0].length ||
+						neighborCoord.getY() < 0 || neighborCoord.getY() >= map.length ||
+						map[neighborCoord.getY()][neighborCoord.getX()].equals("L")) {
+					    continue; // Blocked by a wall.
+				}
 
-		List<Coordinate> potentialMoves = Arrays.asList(
-			new Coordinate(from.getX() + 1, from.getY()),
-			new Coordinate(from.getX() - 1, from.getY()),
-			new Coordinate(from.getX(), from.getY() + 1),
-			new Coordinate(from.getX(), from.getY() - 1),
-			new Coordinate(from.getX() + 1, from.getY() + 1),
-			new Coordinate(from.getX() - 1, from.getY() + 1),
-			new Coordinate(from.getX() + 1, from.getY() - 1),
-			new Coordinate(from.getX() - 1, from.getY() - 1)
-		);
+				Node neighbor = allNodes.getOrDefault(neighborCoord, new Node(neighborCoord));
+				int tentativeG = currentNode.g + 1; // All moves cost 1 for simplicity.
 
-		for (Coordinate potentialMove : potentialMoves) {
-			List<Coordinate> newRoute = search(potentialMove, to, visited, route);
-			if (newRoute != null) {
-				return newRoute;
+				if (tentativeG < neighbor.g) {
+					neighbor.parent = currentNode;
+					neighbor.g = tentativeG;
+					neighbor.f = tentativeG + heuristic(neighbor.coordinate, goal);
+					if (!openList.contains(neighbor)) {
+						openList.add(neighbor);
+						allNodes.put(neighborCoord, neighbor);
+					}
+				}
 			}
 		}
 
-		return null;
+		return Collections.emptyList(); // No path found.
+	}
+
+	private List<Coordinate> getNeighbors(Coordinate coordinate) {
+		int x = coordinate.getX();
+		int y = coordinate.getY();
+
+		return Arrays.asList(
+				new Coordinate(x + 1, y),
+				new Coordinate(x - 1, y),
+				new Coordinate(x, y + 1),
+				new Coordinate(x, y - 1),
+				new Coordinate(x + 1, y + 1),
+				new Coordinate(x - 1, y + 1),
+				new Coordinate(x + 1, y - 1),
+				new Coordinate(x - 1, y - 1)
+		);
+	}
+
+	static class Node {
+		Coordinate coordinate;
+		Node parent;
+		int g, f;
+
+		Node(Coordinate coordinate) {
+			this(coordinate, null, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		}
+
+		Node(Coordinate coordinate, Node parent, int g, int h) {
+			this.coordinate = coordinate;
+			this.parent = parent;
+			this.g = g;
+			this.f = g + h;
+		}
 	}
 }
