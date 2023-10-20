@@ -1,7 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Level4 extends Solver {
@@ -78,30 +77,38 @@ public class Level4 extends Solver {
 			return null;
 		}
 
-		if (visited.contains(from)) {
+		if (visited.contains(from) || map[from.getY()][from.getX()].equals("L")) {
 			return null;
 		}
+
+		visited = new ArrayList<>(visited);
+		route = new ArrayList<>(route);
 
 		visited.add(from);
+		route.add(from);
 
-		if (map[from.getY()][from.getX()].equals("L")) {
-			return null;
-		}
-
-		if (from.getX() == to.getX() && from.getY() == to.getY()) {
+		if (from.equals(to)) {
 			return route;
 		}
 
-		List<Coordinate> right = search(new Coordinate(from.getX() + 1, from.getY()), to, visited, route);
-		List<Coordinate> left = search(new Coordinate(from.getX() - 1, from.getY()), to, visited, route);
-		List<Coordinate> down = search(new Coordinate(from.getX(), from.getY() + 1), to, visited, route);
-		List<Coordinate> up = search(new Coordinate(from.getX(), from.getY() - 1), to, visited, route);
-		List<Coordinate> rightDown = search(new Coordinate(from.getX() + 1, from.getY() + 1), to, visited, route);
-		List<Coordinate> leftDown = search(new Coordinate(from.getX() - 1, from.getY() + 1), to, visited, route);
-		List<Coordinate> rightUp = search(new Coordinate(from.getX() + 1, from.getY() - 1), to, visited, route);
-		List<Coordinate> leftUp = search(new Coordinate(from.getX() - 1, from.getY() - 1), to, visited, route);
+		List<Coordinate> potentialMoves = Arrays.asList(
+			new Coordinate(from.getX() + 1, from.getY()),
+			new Coordinate(from.getX() - 1, from.getY()),
+			new Coordinate(from.getX(), from.getY() + 1),
+			new Coordinate(from.getX(), from.getY() - 1),
+			new Coordinate(from.getX() + 1, from.getY() + 1),
+			new Coordinate(from.getX() - 1, from.getY() + 1),
+			new Coordinate(from.getX() + 1, from.getY() - 1),
+			new Coordinate(from.getX() - 1, from.getY() - 1)
+		);
 
-		List<Coordinate>[] lists = new List[] {right, left, down, up, rightDown, leftDown, rightUp, leftUp};
-		return Arrays.stream(lists).filter(Objects::nonNull).sorted((l1, l2) -> l2.size() - l1.size()).findFirst().orElseThrow(() -> new RuntimeException("No route found"));
+		for (Coordinate potentialMove : potentialMoves) {
+			List<Coordinate> newRoute = search(potentialMove, to, visited, route);
+			if (newRoute != null) {
+				return newRoute;
+			}
+		}
+
+		return null;
 	}
 }
