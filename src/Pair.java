@@ -8,6 +8,12 @@ public class Pair {
 		this.c2 = c2;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		Pair other = (Pair) o;
+		return c1.equals(other.c1) && c2.equals(other.c2);
+	}
+
 	public Coordinate getC1() {
 		return c1;
 	}

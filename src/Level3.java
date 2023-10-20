@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -31,19 +32,20 @@ public class Level3 extends Solver {
 				return false;
 			}
 
-			for (int i = 0; i < route.size() - 3; i++) {
+			List<Pair> wouldCross = new ArrayList<>();
+			for (int i = 0; i < route.size() - 1; i++) {
 				Coordinate c1 = route.get(i);
 				Coordinate c2 = route.get(i + 1);
+
+				if (wouldCross.contains(new Pair(c1, c2))) {
+					return false;
+				}
 
 				Coordinate swappedC1 = new Coordinate(c2.getX(), c1.getY());
 				Coordinate swappedC2 = new Coordinate(c1.getX(), c2.getY());
 
-				Coordinate checkWithC1 = route.get(i + 3);
-				Coordinate checkWithC2 = route.get(i + 2);
-
-				if (swappedC1.equals(checkWithC1) && swappedC2.equals(checkWithC2)) {
-					return false;
-				}
+				wouldCross.add(new Pair(swappedC1, swappedC2));
+				wouldCross.add(new Pair(swappedC2, swappedC1));
 			}
 
 			return true;
