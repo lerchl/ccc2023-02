@@ -1,5 +1,7 @@
 public class Coordinate {
-	
+
+	private static int i = 0;
+
 	private final int x;
 	private final int y;
 

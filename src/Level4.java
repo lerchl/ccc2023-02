@@ -1,4 +1,10 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.stream.Collectors;
 
 // Assuming your Coordinate and Pair classes are defined elsewhere.
@@ -27,63 +33,63 @@ public class Level4 extends Solver {
 		}).toList();
 
 		return coordinatePairs.stream().map(pair -> {
-			var route = aStarSearch(pair.getC1(), pair.getC2());
+			var route = aStarSearch(pair.getC1().getX(), pair.getC1().getY(), pair.getC2().getX(), pair.getC2().getY());
 			return route.stream().map(c -> c.getX() + "," + c.getY()).collect(Collectors.joining(" "));
 		}).toList();
 	}
 
-	private int heuristic(Coordinate a, Coordinate b) {
+	private int heuristic(int firstX, int firstY, int secondX, int secondY) {
 		// Manhattan distance
-		return Math.abs(a.getX() - b.getX()) + Math.abs(a.getY() - b.getY());
+		return Math.abs(firstX - secondX) + Math.abs(firstY - secondY);
 	}
 
-	private List<Coordinate> aStarSearch(Coordinate start, Coordinate goal) {
+	private int hash(int x, int y) {
+		return x >= y ? x * x + x + y : x + y * y;
+	}
+
+	private List<Coordinate> aStarSearch(int startX, int startY, int goalX, int goalY) {
 		PriorityQueue<Node> openList = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
-		Map<Coordinate, Node> allNodes = new HashMap<>();
-		Set<Coordinate> openSet = new HashSet<>();  // Step 1: Use a HashSet for O(1) existence checks
-		Node startNode = new Node(start, null, 0, heuristic(start, goal));
+		Map<Integer, Node> allNodes = new HashMap<>();
+		Node startNode = new Node(startX, startY, null, 0, heuristic(startX, startY, goalX, goalY));
 
 		openList.add(startNode);
-		allNodes.put(start, startNode);
-		openSet.add(start); // Add the start node's coordinate to openSet
+		allNodes.put(hash(startX, startY), startNode);
 
 		while (!openList.isEmpty()) {
 			Node currentNode = openList.poll();
-			openSet.remove(currentNode.coordinate); // Remove the current node's coordinate from openSet
 
-			if (currentNode.coordinate.equals(goal)) {
+			if (currentNode.x == goalX && currentNode.y == goalY) {
 				List<Coordinate> path = new ArrayList<>();
 				while (currentNode != null) {
-					path.add(currentNode.coordinate);
+					path.add(new Coordinate(currentNode.x, currentNode.y));
 					currentNode = currentNode.parent;
 				}
 				Collections.reverse(path);
 				return path;
 			}
 
-			for (Coordinate neighborCoord : getNeighbors(currentNode.coordinate)) {
-				if (neighborCoord.getX() < 0 || neighborCoord.getX() >= map[0].length ||
-						neighborCoord.getY() < 0 || neighborCoord.getY() >= map.length ||
-						map[neighborCoord.getY()][neighborCoord.getX()].equals("L")) {
-					continue; // Blocked by a wall.
+			for (int[] neighborCoord : getNeighbors(currentNode.x, currentNode.y)) {
+				int x = neighborCoord[0];
+				int y = neighborCoord[1];
+
+				if (
+					x < 0 || x >= map[0].length ||
+					y < 0 || y >= map.length ||
+					map[y][x].equals("L")
+				) {
+					    continue;
 				}
 
-				Node neighbor = allNodes.get(neighborCoord);
-				if (neighbor == null) {
-					neighbor = new Node(neighborCoord);
-					allNodes.put(neighborCoord, neighbor);
-				}
-
+				Node neighbor = allNodes.getOrDefault(hash(goalX, goalY), new Node(x, y));
 				int tentativeG = currentNode.g + 1; // All moves cost 1 for simplicity.
 
 				if (tentativeG < neighbor.g) {
 					neighbor.parent = currentNode;
 					neighbor.g = tentativeG;
-					neighbor.f = tentativeG + heuristic(neighbor.coordinate, goal);
-
-					if (!openSet.contains(neighbor.coordinate)) { // Step 2: Refactor the way you handle neighbors
+					neighbor.f = tentativeG + heuristic(neighbor.x, neighbor.y, goalX, goalY);
+					if (!openList.contains(neighbor)) {
 						openList.add(neighbor);
-						openSet.add(neighbor.coordinate);
+						allNodes.put(hash(neighbor.x, neighbor.y), neighbor);
 					}
 				}
 			}
@@ -93,33 +99,26 @@ public class Level4 extends Solver {
 	}
 
 
-	private List<Coordinate> getNeighbors(Coordinate coordinate) {
-		int x = coordinate.getX();
-		int y = coordinate.getY();
-
-		return Arrays.asList(
-				new Coordinate(x + 1, y),
-				new Coordinate(x - 1, y),
-				new Coordinate(x, y + 1),
-				new Coordinate(x, y - 1),
-				new Coordinate(x + 1, y + 1),
-				new Coordinate(x - 1, y + 1),
-				new Coordinate(x + 1, y - 1),
-				new Coordinate(x - 1, y - 1)
-		);
+	private int[][] getNeighbors(int x, int y) {
+		return new int[][] {
+			{x - 1, y - 1}, {x, y - 1}, {x + 1, y - 1},
+			{x - 1, y},                 {x + 1, y},
+			{x - 1, y + 1}, {x, y + 1}, {x + 1, y + 1}
+		};
 	}
 
 	static class Node {
-		Coordinate coordinate;
+		int x, y;
 		Node parent;
 		int g, f;
 
-		Node(Coordinate coordinate) {
-			this(coordinate, null, Integer.MAX_VALUE, Integer.MAX_VALUE);
+		Node(int x, int y) {
+			this(x, y, null, Integer.MAX_VALUE, Integer.MAX_VALUE);
 		}
 
-		Node(Coordinate coordinate, Node parent, int g, int h) {
-			this.coordinate = coordinate;
+		Node(int x, int y, Node parent, int g, int h) {
+			this.x = x;
+			this.y = y;
 			this.parent = parent;
 			this.g = g;
 			this.f = g + h;
