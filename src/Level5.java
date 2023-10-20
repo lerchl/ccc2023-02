@@ -5,7 +5,8 @@ import java.util.stream.Collectors;
 // Assuming your Coordinate and Pair classes are defined elsewhere.
 
 public class Level5 extends Solver {
-	private String[][] map;
+
+	String[][] map;
 
 	Level5() {
 		super(5);
@@ -17,110 +18,77 @@ public class Level5 extends Solver {
 		map = input.stream().skip(1).limit(mapSize).map(row -> row.split("")).toArray(String[][]::new);
 		int coordinateCountIndex = mapSize + 1;
 
-		List<Pair> coordinatePairs = input.stream().skip(coordinateCountIndex + 1).map(row -> {
-			String[] coordinates = row.split(" ");
-			String[] stringCoordinate1 = coordinates[0].split(",");
-			String[] stringCoordinate2 = coordinates[1].split(",");
-			Coordinate coordinate1 = new Coordinate(Integer.parseInt(stringCoordinate1[0]), Integer.parseInt(stringCoordinate1[1]));
-			Coordinate coordinate2 = new Coordinate(Integer.parseInt(stringCoordinate2[0]), Integer.parseInt(stringCoordinate2[1]));
-
-			return new Pair(coordinate1, coordinate2);
+		List<Coordinate> coordinatePairs = input.stream().skip(coordinateCountIndex + 1).map(row -> {
+			String[] coordinates = row.split(",");
+			return new Coordinate(Integer.parseInt(coordinates[0]), Integer.parseInt(coordinates[1]));
 		}).toList();
 
-		return coordinatePairs.stream().map(pair -> {
-			var route = circle(pair.getC1().getX(), pair.getC1().getY(), pair.getC2().getX(), pair.getC2().getY());
+		return coordinatePairs.stream().map(coord -> {
+			int x = coord.getX();
+			int y = coord.getY();
+			var route = circle(x, y);
 			return route.stream().map(c -> c.getX() + "," + c.getY()).collect(Collectors.joining(" "));
 		}).toList();
 	}
 
-	private int heuristic(int firstX, int firstY, int secondX, int secondY) {
-		// Manhattan distance
-		return Math.abs(firstX - secondX) + Math.abs(firstY - secondY);
+	String[][] copyMap(String[][] map) {
+		String[][] copy = new String[map.length][map[0].length];
+		for (int i = 0; i < map.length; i++) {
+			System.arraycopy(map[i], 0, copy[i], 0, map[i].length);
+		}
+		return copy;
 	}
 
-	private int hash(int x, int y) {
-		return x >= y ? x * x + x + y : x + y * y;
-	}
+	private List<Coordinate> circle(int startX, int startY) {
+		// Define the directions to move
+		int[][] DIRECTIONS = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
+		int currentDir = 0; // Start by moving up
 
-	private List<Coordinate> circle(int startX, int startY, int goalX, int goalY) {
 		int x = startX;
 		int y = startY;
 
+		// Find the initial sea tile by moving left
 		while (map[y][x].equals("L")) {
 			x--;
 		}
 
+		int startXSea = x, startYSea = y;
+
 		List<Coordinate> path = new ArrayList<>();
 		path.add(new Coordinate(x, y));
 
-		if () {
-			
+		while (true) {
+			int nextDir = (currentDir + 1) % 4; // turn right
+			int dx = DIRECTIONS[nextDir][0];
+			int dy = DIRECTIONS[nextDir][1];
+
+			// Check if the tile to the right is sea and move there
+			if (!map[y + dy][x + dx].equals("L")) {
+				x += dx;
+				y += dy;
+				currentDir = nextDir;
+			} else {
+				// Move forward
+				x += DIRECTIONS[currentDir][0];
+				y += DIRECTIONS[currentDir][1];
+			}
+
+			// If we hit the starting point, break
+			if ((x == startXSea && y == startYSea) || path.size() > 2 * map[0].length) {
+				break;
+			}
+
+			path.add(new Coordinate(x, y));
 		}
-		if (map[y][x].equals("W") && map[y][x + 1].equals("L")) {
-			y--;
-		} else if (map[y][x + 1].equals("L")) {
-			x++;
-		} else if () {
 
-		}
-
-
-		// PriorityQueue<Node> openList = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
-		// Map<Integer, Node> allNodes = new HashMap<>();
-		// Node startNode = new Node(startX, startY, null, 0, heuristic(startX, startY, goalX, goalY));
-
-		// openList.add(startNode);
-		// allNodes.put(hash(startX, startY), startNode);
-
-		// while (!openList.isEmpty()) {
-		// 	Node currentNode = openList.poll();
-
-		// 	if (currentNode.x == goalX && currentNode.y == goalY) {
-		// 		List<Coordinate> path = new ArrayList<>();
-		// 		while (currentNode != null) {
-		// 			path.add(new Coordinate(currentNode.x, currentNode.y));
-		// 			currentNode = currentNode.parent;
-		// 		}
-		// 		Collections.reverse(path);
-		// 		return path;
-		// 	}
-
-		// 	for (int[] neighborCoord : getNeighbors(currentNode.x, currentNode.y)) {
-		// 		int x = neighborCoord[0];
-		// 		int y = neighborCoord[1];
-
-		// 		if (
-		// 			x < 0 || x >= map[0].length ||
-		// 			y < 0 || y >= map.length ||
-		// 			map[y][x].equals("L")
-		// 		) {
-		// 			    continue;
-		// 		}
-
-		// 		Node neighbor = allNodes.getOrDefault(hash(x, y), new Node(x, y));
-		// 		int tentativeG = currentNode.g + 1; // All moves cost 1 for simplicity.
-
-		// 		if (tentativeG < neighbor.g) {
-		// 			neighbor.parent = currentNode;
-		// 			neighbor.g = tentativeG;
-		// 			neighbor.f = tentativeG + heuristic(neighbor.x, neighbor.y, goalX, goalY);
-		// 			if (!openList.contains(neighbor)) {
-		// 				openList.add(neighbor);
-		// 				allNodes.put(hash(neighbor.x, neighbor.y), neighbor);
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// return Collections.emptyList(); // No path found.
+		return path;
 	}
-
 
 	private int[][] getNeighbors(int x, int y) {
 		return new int[][] {
-			{x - 1, y - 1}, {x, y - 1}, {x + 1, y - 1},
-			{x - 1, y},                 {x + 1, y},
-			{x - 1, y + 1}, {x, y + 1}, {x + 1, y + 1}
+				{ x - 1, y - 1 }, { x, y - 1 }, { x + 1, y - 1 },
+				{ x - 1, y }, { x + 1, y },
+				{ x - 1, y + 1 }, { x, y + 1 }, { x + 1, y + 1 }
 		};
 	}
 

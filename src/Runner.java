@@ -4,7 +4,7 @@ public class Runner {
 
     public static void main(String[] args) {
         // Change level here
-        var level = new Level4();
+        var level = new Level5();
 
         IntStream.range(1, 6).forEach(sublevel -> {
             try {
